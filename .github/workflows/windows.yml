@@ -41,7 +41,7 @@ jobs:
         working-directory: repos\openal-soft
         run: >
           cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
-          }} -DCMAKE_INSTALL_PREFIX:PATH=openal
+          }} -DCMAKE_INSTALL_PREFIX:PATH=openal -DLIBTYPE=STATIC
       - name: Build
         working-directory: repos\openal-soft\build
         shell: cmd
@@ -60,15 +60,29 @@ jobs:
         run: |
           ninja
           ninja install
+      #build zlib
+      - name: Configure
+        working-directory: repos\zlib
+        run: >
+          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
+          }} -DCMAKE_INSTALL_PREFIX=zlib 
+      - name: Build
+        working-directory: repos\zlib\build
+        shell: cmd
+        run: |
+          ninja
+          ninja install          
       #build release
       - name: Prepare artifact
         shell: pwsh
         run: >
           mkdir dist
           
-          xcopy repos\openal-soft\build\openal dist\ /E/H/C/I
+          xcopy repos\openal-soft\build\openal dist\openal /E/H/C/I
           
-          xcopy repos\SDL\sdl dist\ /E/H/C/I
+          xcopy repos\SDL\sdl dist\sdl /E/H/C/I
+          
+          xcopy repos\zlib\zlib dist\zlib /E/H/C/I
       - name: Zip Folder For Release
         run: >-
           Compress-Archive -Path dist -DestinationPath ./Windows_${{
