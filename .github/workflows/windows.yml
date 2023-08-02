@@ -36,7 +36,7 @@ jobs:
           arch: '${{ matrix.architecture }}'
       #build openal-soft
       - name: Configure
-        working-directory: repos\openal-soft\build
+        working-directory: repos\openal-soft
         run: >
           cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
           }} -DCMAKE_INSTALL_PREFIX:PATH=openal-soft
