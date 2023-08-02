@@ -43,7 +43,7 @@ jobs:
           install: make diffutils yasm nasm         
       #build ffmpeg
       - name: build ffmpeg
-        shell: msys2
+        shell: msys2 {0}
         working-directory: repos\ffmpeg
         run: >
           ls
