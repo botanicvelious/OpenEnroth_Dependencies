@@ -46,17 +46,16 @@ jobs:
         shell: msys2 {0}
         working-directory: repos\ffmpeg
         run: >
-          ls
-          
-          pwd
-          
+        # /d/a/OpenEnroth_Dependencies/OpenEnroth_Dependencies/repos/ffmpeg
           export CC=cl 
           
-          ./configure --toolchain=msvc --arch=x86_64 --disable-everything  --disable-gpl --disable-version3 --disable-nonfree --enable-small --disable-runtime-cpudetect --disable-gray --disable-swscale-alpha --disable-programs --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-iconv --disable-doc --disable-htmlpages --disable-manpages --disable-podpages --disable-txtpages --disable-avdevice --enable-avcodec --enable-avformat --enable-avutil --enable-swresample --enable-swscale --enable-postproc --enable-avfilter --enable-dct --enable-mdct --enable-rdft --enable-fft --disable-devices --disable-encoders --disable-filters --disable-hwaccels --disable-decoders --enable-decoder=mp3* --enable-decoder=adpcm* --enable-decoder=pcm* --enable-decoder=bink --enable-decoder=binkaudio_dct --enable-decoder=binkaudio_rdft --enable-decoder=smackaud --enable-decoder=smacker --enable-decoder=wav --disable-muxers --disable-demuxers --enable-demuxer=mp3 --enable-demuxer=bink --enable-demuxer=binka --enable-demuxer=smacker --enable-demuxer=pcm* --enable-demuxer=wav* --enable-demuxer=vorbisaaaaa --disable-parsers --disable-bsfs --disable-protocols --enable-protocol=file
+          ./configure --toolchain=msvc --arch=x86_64 --disable-everything  --disable-gpl --disable-version3 --disable-nonfree --enable-small --disable-runtime-cpudetect --disable-gray --disable-swscale-alpha --disable-programs --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-iconv --disable-doc --disable-htmlpages --disable-manpages --disable-podpages --disable-txtpages --disable-avdevice --enable-avcodec --enable-avformat --enable-avutil --enable-swresample --enable-swscale --enable-postproc --enable-avfilter --enable-dct --enable-mdct --enable-rdft --enable-fft --disable-devices --disable-encoders --disable-filters --disable-hwaccels --disable-decoders --enable-decoder=mp3* --enable-decoder=adpcm* --enable-decoder=pcm* --enable-decoder=bink --enable-decoder=binkaudio_dct --enable-decoder=binkaudio_rdft --enable-decoder=smackaud --enable-decoder=smacker --enable-decoder=wav --disable-muxers --disable-demuxers --enable-demuxer=mp3 --enable-demuxer=bink --enable-demuxer=binka --enable-demuxer=smacker --enable-demuxer=pcm* --enable-demuxer=wav* --enable-demuxer=vorbisaaaaa --disable-parsers --disable-bsfs --disable-protocols --enable-protocol=file --enable-cross-compile
           
           make V=1 -j 3
           
           make install
+        env:
+          MSYS2_PATH_TYPE: inherit
       - name: Build ffmpeg
         working-directory: repos\zlib\build
         shell: cmd
