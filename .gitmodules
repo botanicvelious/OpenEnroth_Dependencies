@@ -1,0 +1,12 @@
+[submodule "repos/openal-soft"]
+	path = repos/openal-soft
+	url = https://github.com/kcat/openal-soft
+[submodule "repos/zlib"]
+	path = repos/zlib
+	url = https://github.com/madler/zlib
+[submodule "repos/SDL"]
+	path = repos/SDL
+	url = https://github.com/libsdl-org/SDL
+[submodule "repos/FFmpeg"]
+	path = repos/FFmpeg
+	url = https://github.com/FFmpeg/FFmpeg
