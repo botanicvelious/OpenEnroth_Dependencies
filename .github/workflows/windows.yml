@@ -71,7 +71,27 @@ jobs:
         shell: cmd
         run: |
           ninja
-          ninja install          
+          ninja install
+      #build ffmpeg
+      - name: Configure
+        working-directory: repos\ffmpeg
+        run: >
+          ./configure \
+            --toolchain=msvc \
+            --arch=${{ matrix.architecture }} \
+            --enable-yasm \
+            --enable-asm\
+            --enable-w32threads \
+            --disable-programs \
+            --disable-ffserver \
+            --disable-doc \
+            --prefix=ffmpeg
+      - name: Build
+        working-directory: repos\zlib\build
+        shell: cmd
+        run: |
+          make
+          make install          
       #build release
       - name: Prepare artifact
         shell: pwsh
