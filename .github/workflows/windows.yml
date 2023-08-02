@@ -54,7 +54,7 @@ jobs:
         run: >
           mkdir dist
           
-          xcopy repos\openal-soft\build\openal-soft dist\ /E/H/C/I
+          xcopy repos\openal-soft\build\openal dist\ /E/H/C/I
       - name: Zip Folder For Release
         run: >-
           Compress-Archive -Path dist -DestinationPath ./Windows_${{
