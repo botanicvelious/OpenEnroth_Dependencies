@@ -53,7 +53,7 @@ jobs:
         working-directory: repos\SDL
         run: >
           cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
-          }} -DCMAKE_INSTALL_PREFIX:PATH=sdl
+          }} -DCMAKE_INSTALL_PREFIX=sdl
       - name: Build
         working-directory: repos\SDL\build
         shell: cmd
