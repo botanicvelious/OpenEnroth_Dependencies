@@ -53,6 +53,7 @@ jobs:
         shell: pwsh
         run: >
           mkdir dist
+          
           xcopy repos\openal-soft\build\openal-soft dist\ /E/H/C/I
       - name: Zip Folder For Release
         run: >-
