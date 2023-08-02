@@ -56,8 +56,6 @@ jobs:
           make -j 3
           
           make install
-          
-          mv ffmpeg 
         env:
           MSYS2_PATH_TYPE: inherit
       #build openal-soft
