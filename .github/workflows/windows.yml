@@ -48,6 +48,18 @@ jobs:
         run: |
           ninja
           ninja install
+      #build sdl
+      - name: Configure
+        working-directory: repos\SDL
+        run: >
+          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
+          }} -DCMAKE_INSTALL_PREFIX:PATH=sdl
+      - name: Build
+        working-directory: repos\SDL\build
+        shell: cmd
+        run: |
+          ninja
+          ninja install
       #build release
       - name: Prepare artifact
         shell: pwsh
@@ -55,6 +67,8 @@ jobs:
           mkdir dist
           
           xcopy repos\openal-soft\build\openal dist\ /E/H/C/I
+          
+          xcopy repos\SDL\sdl dist\ /E/H/C/I
       - name: Zip Folder For Release
         run: >-
           Compress-Archive -Path dist -DestinationPath ./Windows_${{
