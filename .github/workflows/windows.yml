@@ -36,57 +36,62 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: '${{ matrix.architecture }}'
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: make diffutils yasm nasm         
       #build openal-soft
-      - name: Configure
+      - name: Configure openal-soft
         working-directory: repos\openal-soft
         run: >
           cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
           }} -DCMAKE_INSTALL_PREFIX:PATH=openal -DLIBTYPE=STATIC
-      - name: Build
+      - name: Build openal-soft
         working-directory: repos\openal-soft\build
         shell: cmd
         run: |
           ninja
           ninja install
-      #build sdl
-      - name: Configure
+      #build sdl2
+      - name: Configure sdl2
         working-directory: repos\SDL
         run: >
           cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
-          }} -DCMAKE_INSTALL_PREFIX=sdl -DSDL_STATIC=On -DSDL_SHARED=Off
-      - name: Build
+          }} -DCMAKE_INSTALL_PREFIX=sdl2 -DSDL_STATIC=On -DSDL_SHARED=Off
+      - name: Build sdl2
         working-directory: repos\SDL\build
         shell: cmd
         run: |
           ninja
           ninja install
       #build zlib
-      - name: Configure
+      - name: Configure zlib
         working-directory: repos\zlib
         run: >
           cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
           }} -DCMAKE_INSTALL_PREFIX=zlib 
-      - name: Build
+      - name: Build zlib
         working-directory: repos\zlib\build
         shell: cmd
         run: |
           ninja
           ninja install
       #build ffmpeg
-      - name: Configure
+      - name: build ffmpeg
+        shell: msys2
+        run: |
+          echo 'Running in MSYS2!'
+          ./ci-build.sh      - name: Configure ffmpeg
         working-directory: repos\ffmpeg
         run: >
-          ./configure \
-            --toolchain=msvc \
-            --arch=${{ matrix.architecture }} \
-            --enable-yasm \
-            --enable-asm\
-            --enable-w32threads \
-            --disable-programs \
-            --disable-ffserver \
-            --disable-doc \
-            --prefix=ffmpeg
-      - name: Build
+          ls
+          pwd
+          export CC=cl 
+          ./../../sources/ffmpeg/configure --prefix=./../../installed --toolchain=msvc --arch=x86_64 --disable-everything  --disable-gpl --disable-version3 --disable-nonfree --enable-small --disable-runtime-cpudetect --disable-gray --disable-swscale-alpha --disable-programs --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-iconv --disable-doc --disable-htmlpages --disable-manpages --disable-podpages --disable-txtpages --disable-avdevice --enable-avcodec --enable-avformat --enable-avutil --enable-swresample --enable-swscale --enable-postproc --enable-avfilter --enable-dct --enable-mdct --enable-rdft --enable-fft --disable-devices --disable-encoders --disable-filters --disable-hwaccels --disable-decoders --enable-decoder=mp3* --enable-decoder=adpcm* --enable-decoder=pcm* --enable-decoder=bink --enable-decoder=binkaudio_dct --enable-decoder=binkaudio_rdft --enable-decoder=smackaud --enable-decoder=smacker --enable-decoder=wav --disable-muxers --disable-demuxers --enable-demuxer=mp3 --enable-demuxer=bink --enable-demuxer=binka --enable-demuxer=smacker --enable-demuxer=pcm* --enable-demuxer=wav* --enable-demuxer=vorbisaaaaa --disable-parsers --disable-bsfs --disable-protocols --enable-protocol=file
+          make V=1 -j 3
+          make install
+      - name: Build ffmpeg
         working-directory: repos\zlib\build
         shell: cmd
         run: |
@@ -96,16 +101,16 @@ jobs:
       - name: Prepare artifact
         shell: pwsh
         run: >
-          mkdir dist
+          mkdir win32
           
-          xcopy repos\openal-soft\build\openal dist\openal /E/H/C/I
+          xcopy repos\openal-soft\build\openal win32\${{ matrix.architecture }}\openal /E/H/C/I
           
-          xcopy repos\SDL\sdl dist\sdl /E/H/C/I
+          xcopy repos\SDL\sdl2 win32\${{ matrix.architecture }}\sdl2 /E/H/C/I
           
-          xcopy repos\zlib\zlib dist\zlib /E/H/C/I
+          xcopy repos\zlib\zlib win32\${{ matrix.architecture }}\zlib /E/H/C/I
       - name: Zip Folder For Release
         run: >-
-          Compress-Archive -Path dist -DestinationPath ./Windows_${{
+          Compress-Archive -Path win32 -DestinationPath ./Windows_${{
           env.TAG_NAME }}_${{ matrix.configuration }}_${{ matrix.architecture
           }}.zip
       - name: Publish Release
