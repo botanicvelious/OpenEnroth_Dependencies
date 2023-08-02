@@ -1,6 +1,7 @@
-name: Windows
+name: Build Release
 'on':
-  pull_request: null
+  schedule:
+    - cron: 16 11 * * *
   workflow_dispatch:
     inputs:
       myCommit:
@@ -8,10 +9,11 @@ name: Windows
         required: false
         default: ''
         type: string
-  push: null
-  release:
-    types:
-      - published
+  push:
+    tags:
+      - '*'
+env:
+  TAG_NAME: nightly
 jobs:
   build_windows:
     runs-on: windows-2022
@@ -39,10 +41,29 @@ jobs:
         working-directory: repos\openal-soft
         run: >
           cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
-          }} -DCMAKE_INSTALL_PREFIX:PATH=openal-soft
+          }} -DCMAKE_INSTALL_PREFIX:PATH=openal
       - name: Build
         working-directory: repos\openal-soft\build
         shell: cmd
         run: |
           ninja
           ninja install
+      #build release
+      - name: Prepare artifact
+        shell: pwsh
+        run: >
+          mkdir dist
+          xcopy repos\openal-soft\build\openal-soft dist\ /E/H/C/I
+      - name: Zip Folder For Release
+        run: >-
+          Compress-Archive -Path dist -DestinationPath ./Windows_${{
+          env.TAG_NAME }}_${{ matrix.configuration }}_${{ matrix.architecture
+          }}.zip
+      - name: Publish Release
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          tag_name: '${{ env.TAG_NAME }}'
+          files: >-
+            ${{ runner.os }}_${{ env.TAG_NAME }}_${{ matrix.configuration }}_${{
+            matrix.architecture }}.zip
