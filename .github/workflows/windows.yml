@@ -80,9 +80,6 @@ jobs:
       #build ffmpeg
       - name: build ffmpeg
         shell: msys2
-        run: |
-          echo 'Running in MSYS2!'
-          ./ci-build.sh      - name: Configure ffmpeg
         working-directory: repos\ffmpeg
         run: >
           ls
