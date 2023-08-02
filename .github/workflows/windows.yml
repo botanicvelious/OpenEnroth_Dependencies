@@ -56,6 +56,10 @@ jobs:
           make -j 3
           
           make install
+          
+          ls
+          
+          ls ffmpeg
         env:
           MSYS2_PATH_TYPE: inherit
       #build openal-soft
@@ -100,7 +104,7 @@ jobs:
         run: >
           mkdir win32
           
-          xcopy repos\ffmpeg\build\ffmpeg win32\${{ matrix.architecture }}\ffmpeg /E/H/C/I
+          xcopy repos\ffmpeg\ffmpeg win32\${{ matrix.architecture }}\ffmpeg /E/H/C/I
           
           xcopy repos\openal-soft\build\openal win32\${{ matrix.architecture }}\openal /E/H/C/I
           
