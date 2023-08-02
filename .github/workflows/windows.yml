@@ -1,0 +1,48 @@
+name: Windows
+'on':
+  pull_request: null
+  workflow_dispatch:
+    inputs:
+      myCommit:
+        description: Commit SHA1
+        required: false
+        default: ''
+        type: string
+  push: null
+  release:
+    types:
+      - published
+jobs:
+  build_windows:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - Debug
+          - Release
+        architecture:
+          - x86
+          - x64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          ref: '${{ inputs.myCommit }}'
+      - name: Setup environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: '${{ matrix.architecture }}'
+      #build openal-soft
+      - name: Configure
+        working-directory: repos\openal-soft\build
+        run: >
+          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
+          }} -DCMAKE_INSTALL_PREFIX:PATH=openal-soft
+      - name: Build
+        working-directory: repos\openal-soft\build
+        shell: cmd
+        run: |
+          ninja
+          ninja install
