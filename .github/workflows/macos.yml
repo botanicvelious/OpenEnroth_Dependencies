@@ -1,0 +1,62 @@
+name: MacOS
+
+on:
+  pull_request: null
+  workflow_dispatch:
+    inputs:
+      myCommit:
+        description: Commit SHA1
+        required: false
+        default: ''
+        type: string
+  push: null
+  release:
+    types:
+      - published
+env:
+  TAG_NAME: deps_r1
+
+jobs:
+  build_macos:
+    runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - Debug
+          - Release
+        architecture:
+          - x86_64
+          - arm64
+    steps:
+      - name: Variables
+        run: |
+          echo "ZIP_NAME=darwin_${{matrix.configuration}}_${{matrix.architecture}}.zip" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          ref: '${{inputs.myCommit}}'
+
+      - name: Install Dependencies
+        run: |
+          brew install yasm
+          brew install ninja
+
+      - name: Build
+        run: |
+          ./scripts/build_all.sh -j4 ${{matrix.configuration}} ${{matrix.architecture}} repos "${{env.ZIP_NAME}}"
+
+      - name: Debug
+        run: |
+          ls -lh
+          find ./tmp/install
+#          cat ./tmp/build/ffmpeg/ffbuild/config.log
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          tag_name: '${{env.TAG_NAME}}'
+          files: '${{env.ZIP_NAME}}'
