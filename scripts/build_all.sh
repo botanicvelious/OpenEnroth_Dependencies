@@ -22,8 +22,8 @@ BUILD_ARCH="$2"
 REPOS_DIR="$3"
 TARGET_ZIP="$4"
 
-# Echo on - for debugging.
-set -x
+# Echo on, fail on errors, fail on undefined var usage, fail on pipeline failure.
+set -euxo pipefail
 
 # Set up dir vars.
 TMP_DIR="./tmp"
@@ -47,12 +47,15 @@ INSTALL_DIR="$(make_absolute "$INSTALL_DIR")"
 # Clean up old build if it exists, we want no surprises.
 rm -rf "$BUILD_DIR"
 rm -rf "$INSTALL_DIR"
-rm "$TARGET_ZIP"
+rm -f "$TARGET_ZIP"
 
 # Figure out additional args.
 ADDITIONAL_CMAKE_ARGS=()
-ADDITIONAL_FFMPEG_ARGS=()
 ADDITIONAL_MAKE_ARGS_STRING="$THREADS_ARG"
+ADDITIONAL_FFMPEG_ARGS=(
+    "--arch=$BUILD_ARCH"
+)
+
 if [[ "$OSTYPE" = darwin* ]]; then
     # Deployment target is in sync with what's set in the main OE repo in the root CMakeLists.txt.
     export MACOSX_DEPLOYMENT_TARGET="11"
@@ -61,14 +64,19 @@ if [[ "$OSTYPE" = darwin* ]]; then
     fi
 
     ADDITIONAL_FFMPEG_ARGS=(
-        "--arch=$BUILD_ARCH"
+        "${ADDITIONAL_FFMPEG_ARGS[@]}"
         "--extra-cflags=-arch $BUILD_ARCH"
         "--extra-cxxflags=-arch $BUILD_ARCH"
         "--extra-ldflags=-arch $BUILD_ARCH"
     )
     ADDITIONAL_CMAKE_ARGS=(
         "-DCMAKE_OSX_ARCHITECTURES=$BUILD_ARCH"
-        "-DCMAKE_OSX_DEPLOYMENT_TARGET=$OSX_DEPLOYMENT_TARGET"
+    )
+elif [[ "$OSTYPE" = msys* ]]; then
+    # That's our win* build.
+    ADDITIONAL_FFMPEG_ARGS=(
+        "${ADDITIONAL_FFMPEG_ARGS[@]}"
+        "--toolchain=msvc"
     )
 fi
 
@@ -117,7 +125,7 @@ function ffmpeg_install() {
         "--disable-version3" \
         "--disable-nonfree" \
         "--enable-small" \
-        "--disable-runtime-cpudetect" \
+        "--enable-runtime-cpudetect" \
         "--disable-gray" \
         "--disable-swscale-alpha" \
         "--disable-programs" \
@@ -131,13 +139,14 @@ function ffmpeg_install() {
         "--disable-podpages" \
         "--disable-txtpages" \
         "--disable-avdevice" \
+        "--disable-postproc" \
+        "--disable-avfilter" \
+        "--disable-network" \
         "--enable-avcodec" \
         "--enable-avformat" \
         "--enable-avutil" \
         "--enable-swresample" \
         "--enable-swscale" \
-        "--enable-postproc" \
-        "--enable-avfilter" \
         "--enable-dct" \
         "--enable-mdct" \
         "--enable-rdft" \
@@ -171,11 +180,35 @@ function ffmpeg_install() {
         "$@"
     popd
 
+    # We don't want to link with bcrypt. This is windows-only, but doesn't really need an if around it.
+    # MacOS sed doesn't have -i, so we have to copy & move.
+    sed -e "s/#define HAVE_BCRYPT [01]/#define HAVE_BCRYPT 0/" "$BUILD_DIR/config.h" >"$BUILD_DIR/config_fixed.h"
+    mv "$BUILD_DIR/config_fixed.h" "$BUILD_DIR/config.h"
+    cat "$BUILD_DIR/config.h" | grep "HAVE_BCRYPT"
+
     # $MAKE_ARGS_STRING will glob, this is intentional.
     make \
         -C "$BUILD_DIR" \
         $MAKE_ARGS_STRING \
         install
+
+    # On windows under msys we get file names is if we were on linux, and cmake find_package can't see them.
+    # So we need to fix the file names. Note that .a and .lib are identical file format-wise.
+    if [[ "$OSTYPE" = msys* ]]; then
+        pushd "$INSTALL_DIR/lib"
+        for FILE_NAME in *.a; do
+            NEW_FILE_NAME="$FILE_NAME"
+            NEW_FILE_NAME="${NEW_FILE_NAME%.a}.lib" # replace suffix: .a -> .lib.
+            NEW_FILE_NAME="${NEW_FILE_NAME#lib}"    # drop "lib" prefix.
+            mv "$FILE_NAME" "$NEW_FILE_NAME"
+        done
+        popd
+    fi
+
+    # If we do want to link with bcrypt, there is this workaround. Will it blow up if the target binary links with
+    # bcrypt explicitly? I didn't check, but I'd bet it will. Commented out for now.
+    # lib -nologo "-out:$INSTALL_DIR/lib/avutil_fixed.lib" bcrypt.lib "$INSTALL_DIR/lib/avutil.lib"
+    # mv "$INSTALL_DIR/lib/avutil_fixed.lib" "$INSTALL_DIR/lib/avutil.lib"
 }
 
 git -C "$REPOS_DIR" submodule update --init
@@ -225,7 +258,7 @@ rm -rf "$INSTALL_DIR/share"
 rm -rf "$INSTALL_DIR/bin"
 
 # We don't want unneeded path in the zip archive, and there is no other way to do it except with pushd/popd:
-# https://superuser.com/questions/119649/avoid-unwanted-path-in-zip-file/119661#119661
+# https://superuser.com/questions/119649/avoid-unwanted-path-in-zip-file/119661
 pushd "$INSTALL_DIR"
 zip -r "$TARGET_ZIP" ./*
 popd
