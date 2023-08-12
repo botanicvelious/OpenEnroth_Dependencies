@@ -1,12 +1,12 @@
-[submodule "repos/openal-soft"]
-	path = repos/openal-soft
+[submodule "repos/openal_soft"]
+	path = repos/openal_soft
 	url = https://github.com/kcat/openal-soft
 [submodule "repos/zlib"]
 	path = repos/zlib
 	url = https://github.com/madler/zlib
-[submodule "repos/SDL"]
-	path = repos/SDL
+[submodule "repos/sdl"]
+	path = repos/sdl
 	url = https://github.com/libsdl-org/SDL
-[submodule "repos/FFmpeg"]
-	path = repos/FFmpeg
+[submodule "repos/ffmpeg"]
+	path = repos/ffmpeg
 	url = https://github.com/FFmpeg/FFmpeg

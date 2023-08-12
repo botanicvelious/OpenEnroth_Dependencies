@@ -1,5 +1,5 @@
-name: Build Release
-'on':
+name: Windows
+on:
   pull_request: null
   workflow_dispatch:
     inputs:
@@ -78,12 +78,12 @@ jobs:
           MSYS2_PATH_TYPE: inherit
       #build openal-soft
       - name: Configure openal-soft
-        working-directory: repos\openal-soft
+        working-directory: repos\openal_soft
         run: >
           cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
           }} -DCMAKE_INSTALL_PREFIX:PATH=openal -DLIBTYPE=STATIC
       - name: Build openal-soft
-        working-directory: repos\openal-soft\build
+        working-directory: repos\openal_soft\build
         shell: cmd
         run: |
           ninja
@@ -120,7 +120,7 @@ jobs:
           
           xcopy repos\ffmpeg\build\ffmpeg win32\${{ matrix.architecture }}\ffmpeg /E/H/C/I
           
-          xcopy repos\openal-soft\build\openal win32\${{ matrix.architecture }}\openal /E/H/C/I
+          xcopy repos\openal_soft\build\openal win32\${{ matrix.architecture }}\openal /E/H/C/I
           
           xcopy repos\SDL\sdl2 win32\${{ matrix.architecture }}\sdl2 /E/H/C/I
           
@@ -130,11 +130,11 @@ jobs:
           Compress-Archive -Path win32 -DestinationPath ./Windows_${{
           env.TAG_NAME }}_${{ matrix.configuration }}_${{ matrix.architecture
           }}.zip
-      - name: Publish Release
-        uses: softprops/action-gh-release@v1
-        with:
-          prerelease: true
-          tag_name: '${{ env.TAG_NAME }}'
-          files: >-
-            ${{ runner.os }}_${{ env.TAG_NAME }}_${{ matrix.configuration }}_${{
-            matrix.architecture }}.zip
+#      - name: Publish Release
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          prerelease: true
+#          tag_name: '${{ env.TAG_NAME }}'
+#          files: >-
+#            ${{ runner.os }}_${{ env.TAG_NAME }}_${{ matrix.configuration }}_${{
+#            matrix.architecture }}.zip
