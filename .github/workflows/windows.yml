@@ -1,5 +1,6 @@
-name: Build Release
-'on':
+name: Windows
+
+on:
   pull_request: null
   workflow_dispatch:
     inputs:
@@ -12,8 +13,10 @@ name: Build Release
   release:
     types:
       - published
+
 env:
-  TAG_NAME: nightly
+  TAG_NAME: deps_r1
+
 jobs:
   build_windows:
     runs-on: windows-2022
@@ -25,116 +28,57 @@ jobs:
           - Release
         architecture:
           - x86
-          - x64
+          - x86_64
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           submodules: recursive
-          ref: '${{ inputs.myCommit }}'
-      - name: Setup environment
+          ref: '${{inputs.myCommit}}'
+
+      - name: Setup Environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: '${{ matrix.architecture }}'
-      - uses: msys2/setup-msys2@v2
+          arch: '${{matrix.architecture}}'
+
+      - name: Setup msys
+        uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
-          update: true
-          install: make diffutils yasm nasm         
-      #build ffmpeg
-      - name: build ffmpeg x86
-        if: matrix.architecture == 'x86'
+          install: make yasm zip
+
+      - name: Variables
         shell: msys2 {0}
-        working-directory: repos\ffmpeg
-        # /d/a/OpenEnroth_Dependencies/OpenEnroth_Dependencies/repos/ffmpeg
-        run: >
-          mkdir install
-          
-          export CC=cl 
-          
-          ./configure --prefix=./ffmpeg --toolchain=msvc --arch=x86_32 --disable-everything  --disable-gpl --disable-version3 --disable-nonfree --enable-small --disable-runtime-cpudetect --disable-gray --disable-swscale-alpha --disable-programs --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-iconv --disable-doc --disable-htmlpages --disable-manpages --disable-podpages --disable-txtpages --disable-avdevice --enable-avcodec --enable-avformat --enable-avutil --enable-swresample --enable-swscale --enable-postproc --enable-avfilter --enable-dct --enable-mdct --enable-rdft --enable-fft --disable-devices --disable-encoders --disable-filters --disable-hwaccels --disable-decoders --enable-decoder=mp3* --enable-decoder=adpcm* --enable-decoder=pcm* --enable-decoder=bink --enable-decoder=binkaudio_dct --enable-decoder=binkaudio_rdft --enable-decoder=smackaud --enable-decoder=smacker --enable-decoder=wav --disable-muxers --disable-demuxers --enable-demuxer=mp3 --enable-demuxer=bink --enable-demuxer=binka --enable-demuxer=smacker --enable-demuxer=pcm* --enable-demuxer=wav* --enable-demuxer=vorbisaaaaa --disable-parsers --disable-bsfs --disable-protocols --enable-protocol=file --enable-cross-compile
-          
-          make -j 3
-          
-          make install
-        env:
-          MSYS2_PATH_TYPE: inherit      
-      - name: build ffmpeg x64
-        if: matrix.architecture == 'x64'
+        run: |
+          echo "ZIP_NAME=windows_${{matrix.configuration}}_${{matrix.architecture}}.zip" >> $GITHUB_ENV
+
+      # Ironically, this is what the official build guide is recommending to do:
+      # https://trac.ffmpeg.org/wiki/CompilationGuide/MSVC
+      - name: Drop link.exe
         shell: msys2 {0}
-        working-directory: repos\ffmpeg
-        # /d/a/OpenEnroth_Dependencies/OpenEnroth_Dependencies/repos/ffmpeg
-        run: >
-          mkdir install
-          
-          export CC=cl 
-          
-          ./configure --prefix=./ffmpeg --toolchain=msvc --arch=x86_64 --disable-everything  --disable-gpl --disable-version3 --disable-nonfree --enable-small --disable-runtime-cpudetect --disable-gray --disable-swscale-alpha --disable-programs --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-iconv --disable-doc --disable-htmlpages --disable-manpages --disable-podpages --disable-txtpages --disable-avdevice --enable-avcodec --enable-avformat --enable-avutil --enable-swresample --enable-swscale --enable-postproc --enable-avfilter --enable-dct --enable-mdct --enable-rdft --enable-fft --disable-devices --disable-encoders --disable-filters --disable-hwaccels --disable-decoders --enable-decoder=mp3* --enable-decoder=adpcm* --enable-decoder=pcm* --enable-decoder=bink --enable-decoder=binkaudio_dct --enable-decoder=binkaudio_rdft --enable-decoder=smackaud --enable-decoder=smacker --enable-decoder=wav --disable-muxers --disable-demuxers --enable-demuxer=mp3 --enable-demuxer=bink --enable-demuxer=binka --enable-demuxer=smacker --enable-demuxer=pcm* --enable-demuxer=wav* --enable-demuxer=vorbisaaaaa --disable-parsers --disable-bsfs --disable-protocols --enable-protocol=file --enable-cross-compile
-          
-          make -j 3
-          
-          make install
         env:
           MSYS2_PATH_TYPE: inherit
-      #build openal-soft
-      - name: Configure openal-soft
-        working-directory: repos\openal-soft
-        run: >
-          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
-          }} -DCMAKE_INSTALL_PREFIX:PATH=openal -DLIBTYPE=STATIC
-      - name: Build openal-soft
-        working-directory: repos\openal-soft\build
-        shell: cmd
         run: |
-          ninja
-          ninja install
-      #build sdl2
-      - name: Configure sdl2
-        working-directory: repos\SDL
-        run: >
-          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
-          }} -DCMAKE_INSTALL_PREFIX=sdl2 -DSDL_STATIC=On -DSDL_SHARED=Off
-      - name: Build sdl2
-        working-directory: repos\SDL\build
-        shell: cmd
+          rm -rf /usr/bin/link.exe
+          which link.exe
+
+      - name: Build
+        shell: msys2 {0}
+        env:
+          MSYS2_PATH_TYPE: inherit
         run: |
-          ninja
-          ninja install
-      #build zlib
-      - name: Configure zlib
-        working-directory: repos\zlib
-        run: >
-          cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=${{ matrix.configuration
-          }} -DCMAKE_INSTALL_PREFIX=zlib 
-      - name: Build zlib
-        working-directory: repos\zlib\build
-        shell: cmd
+          ./scripts/build_all.sh -j4 ${{matrix.configuration}} ${{matrix.architecture}} repos "${{env.ZIP_NAME}}"
+
+      - name: Print Info
+        shell: msys2 {0}
+        env:
+          MSYS2_PATH_TYPE: inherit
         run: |
-          ninja
-          ninja install         
-      #build release
-      - name: Prepare artifact
-        shell: pwsh
-        run: >
-          mkdir win32
-          
-          xcopy repos\ffmpeg\build\ffmpeg win32\${{ matrix.architecture }}\ffmpeg /E/H/C/I
-          
-          xcopy repos\openal-soft\build\openal win32\${{ matrix.architecture }}\openal /E/H/C/I
-          
-          xcopy repos\SDL\sdl2 win32\${{ matrix.architecture }}\sdl2 /E/H/C/I
-          
-          xcopy repos\zlib\zlib win32\${{ matrix.architecture }}\zlib /E/H/C/I
-      - name: Zip Folder For Release
-        run: >-
-          Compress-Archive -Path win32 -DestinationPath ./Windows_${{
-          env.TAG_NAME }}_${{ matrix.configuration }}_${{ matrix.architecture
-          }}.zip
+          ./scripts/print_info.sh
+
       - name: Publish Release
         uses: softprops/action-gh-release@v1
         with:
           prerelease: true
-          tag_name: '${{ env.TAG_NAME }}'
-          files: >-
-            ${{ runner.os }}_${{ env.TAG_NAME }}_${{ matrix.configuration }}_${{
-            matrix.architecture }}.zip
+          tag_name: '${{env.TAG_NAME}}'
+          files: '${{env.ZIP_NAME}}'
