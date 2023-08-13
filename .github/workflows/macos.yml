@@ -9,13 +9,15 @@ on:
         required: false
         default: ''
         type: string
-  push: null
+  push:
+    branches:
+      - master
   release:
     types:
       - published
 
 env:
-  TAG_NAME: deps_r1
+  DEPS_VERSION: r1
 
 jobs:
   build_macos:
@@ -30,6 +32,9 @@ jobs:
           - x86_64
           - arm64
     steps:
+      - name: Inject Short Variables
+        uses: rlespinasse/github-slug-action@v4
+
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -57,5 +62,5 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           prerelease: true
-          tag_name: '${{env.TAG_NAME}}'
+          tag_name: 'deps_${{env.DEPS_VERSION}}_${{env.GITHUB_REF_NAME_SLUG}}'
           files: '${{env.ZIP_NAME}}'
