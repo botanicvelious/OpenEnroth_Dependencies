@@ -73,7 +73,6 @@ if [[ "$OSTYPE" = darwin* ]]; then
         "-DCMAKE_OSX_ARCHITECTURES=$BUILD_ARCH"
     )
 elif [[ "$OSTYPE" = msys* ]]; then
-    # That's our win* build.
     ADDITIONAL_FFMPEG_ARGS=(
         "${ADDITIONAL_FFMPEG_ARGS[@]}"
         "--toolchain=msvc"
