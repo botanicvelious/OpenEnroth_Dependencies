@@ -244,16 +244,19 @@ cmake_install \
     "-DALSOFT_EXAMPLES=OFF" \
     "-DALSOFT_TESTS=OFF"
 
-cmake_install \
-    "$BUILD_TYPE" \
-    "$REPOS_DIR/sdl" \
-    "$BUILD_DIR/sdl" \
-    "$INSTALL_DIR" \
-    "$ADDITIONAL_MAKE_ARGS_STRING" \
-    "${ADDITIONAL_CMAKE_ARGS[@]}" \
-    "-DSDL_STATIC=ON" \
-    "-DSDL_SHARED=OFF" \
-    "-DSDL_TEST=OFF"
+if [[ "$BUILD_PLATFORM" != "linux" ]]; then
+    # Pre-building SDL on linux makes very little sense. Do we enable x11? Wayland? Something else?
+    cmake_install \
+        "$BUILD_TYPE" \
+        "$REPOS_DIR/sdl" \
+        "$BUILD_DIR/sdl" \
+        "$INSTALL_DIR" \
+        "$ADDITIONAL_MAKE_ARGS_STRING" \
+        "${ADDITIONAL_CMAKE_ARGS[@]}" \
+        "-DSDL_STATIC=ON" \
+        "-DSDL_SHARED=OFF" \
+        "-DSDL_TEST=OFF"
+fi
 
 # We don't need docs & executables.
 rm -rf "$INSTALL_DIR/share"
