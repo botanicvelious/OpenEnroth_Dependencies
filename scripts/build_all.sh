@@ -105,7 +105,8 @@ function cmake_install() {
     ninja \
         -C "$BUILD_DIR" \
         $NINJA_ARGS_STRING \
-        install
+        install \
+        -v
 }
 
 function ffmpeg_install() {
@@ -190,7 +191,8 @@ function ffmpeg_install() {
     make \
         -C "$BUILD_DIR" \
         $MAKE_ARGS_STRING \
-        install
+        install \
+        V=1
 
     # On windows under msys we get file names is if we were on linux, and cmake find_package can't see them.
     # So we need to fix the file names. Note that .a and .lib are identical file format-wise.
