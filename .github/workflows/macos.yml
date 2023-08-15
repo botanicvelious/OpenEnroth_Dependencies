@@ -52,7 +52,7 @@ jobs:
 
       - name: Build
         run: |
-          ./scripts/build_all.sh -j4 ${{matrix.configuration}} ${{matrix.architecture}} repos "${{env.ZIP_NAME}}"
+          ./scripts/build_all.sh -j4 darwin ${{matrix.architecture}} ${{matrix.configuration}} repos "${{env.ZIP_NAME}}"
 
       - name: Print Info
         run: |

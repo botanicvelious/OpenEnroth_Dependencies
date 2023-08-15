@@ -2,7 +2,7 @@
 
 # Parse args.
 if [[ "$1" = "-h" ]]; then
-    echo "Usage: $(basename "$0") [-jTHREADS] BUILD_TYPE BUILD_ARCH REPOS_DIR TARGET_ZIP"
+    echo "Usage: $(basename "$0") [-jTHREADS] BUILD_PLATFORM BUILD_ARCH BUILD_TYPE REPOS_DIR TARGET_ZIP"
     exit 1
 fi
 
@@ -12,15 +12,16 @@ if [[ "$1" = -j* ]]; then
     shift 1
 fi
 
-if [[ "$#" != 4 ]]; then
-    echo "Four arguments required. Use -h for help."
+if [[ "$#" != 5 ]]; then
+    echo "Five arguments required. Use -h for help."
     exit 1
 fi
 
-BUILD_TYPE="$1"
+BUILD_PLATFORM="$1"
 BUILD_ARCH="$2"
-REPOS_DIR="$3"
-TARGET_ZIP="$4"
+BUILD_TYPE="$3"
+REPOS_DIR="$4"
+TARGET_ZIP="$5"
 
 # Echo on, fail on errors, fail on undefined var usage, fail on pipeline failure.
 set -euxo pipefail
@@ -56,7 +57,7 @@ ADDITIONAL_FFMPEG_ARGS=(
     "--arch=$BUILD_ARCH"
 )
 
-if [[ "$OSTYPE" = darwin* ]]; then
+if [[ "$BUILD_PLATFORM" = "darwin" ]]; then
     # Deployment target is in sync with what's set in the main OE repo in the root CMakeLists.txt.
     export MACOSX_DEPLOYMENT_TARGET="11"
     if [[ "$BUILD_ARCH" = x86_64 ]]; then
@@ -72,7 +73,7 @@ if [[ "$OSTYPE" = darwin* ]]; then
     ADDITIONAL_CMAKE_ARGS=(
         "-DCMAKE_OSX_ARCHITECTURES=$BUILD_ARCH"
     )
-elif [[ "$OSTYPE" = msys* ]]; then
+elif [[ "$BUILD_PLATFORM" = "windows" ]]; then
     ADDITIONAL_FFMPEG_ARGS=(
         "${ADDITIONAL_FFMPEG_ARGS[@]}"
         "--toolchain=msvc"
@@ -193,7 +194,7 @@ function ffmpeg_install() {
 
     # On windows under msys we get file names is if we were on linux, and cmake find_package can't see them.
     # So we need to fix the file names. Note that .a and .lib are identical file format-wise.
-    if [[ "$OSTYPE" = msys* ]]; then
+    if [[ "$BUILD_PLATFORM" = "windows" ]]; then
         pushd "$INSTALL_DIR/lib"
         for FILE_NAME in *.a; do
             NEW_FILE_NAME="$FILE_NAME"
