@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Echo on, fail on errors, fail on undefined var usage, fail on pipeline failure.
-set -euxo pipefail
+# Echo on
+set -x
 
 # Should display a built zip file.
 ls -lh

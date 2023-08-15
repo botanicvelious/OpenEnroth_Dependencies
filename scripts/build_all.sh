@@ -51,7 +51,7 @@ rm -rf "$INSTALL_DIR"
 rm -f "$TARGET_ZIP"
 
 # Figure out additional args.
-ADDITIONAL_CMAKE_ARGS=()
+ADDITIONAL_CMAKE_ARGS=
 ADDITIONAL_MAKE_ARGS_STRING="$THREADS_ARG"
 ADDITIONAL_FFMPEG_ARGS=(
     "--arch=$BUILD_ARCH"
@@ -71,6 +71,7 @@ if [[ "$BUILD_PLATFORM" = "darwin" ]]; then
         "--extra-ldflags=-arch $BUILD_ARCH"
     )
     ADDITIONAL_CMAKE_ARGS=(
+        "${ADDITIONAL_CMAKE_ARGS[@]}"
         "-DCMAKE_OSX_ARCHITECTURES=$BUILD_ARCH"
     )
 elif [[ "$BUILD_PLATFORM" = "windows" ]]; then
@@ -78,6 +79,20 @@ elif [[ "$BUILD_PLATFORM" = "windows" ]]; then
         "${ADDITIONAL_FFMPEG_ARGS[@]}"
         "--toolchain=msvc"
     )
+elif [[ "$BUILD_PLATFORM" = "linux" ]]; then
+    if [[ "$BUILD_ARCH" = "x86" ]]; then
+        ADDITIONAL_CMAKE_ARGS=(
+            "${ADDITIONAL_CMAKE_ARGS[@]}"
+            "-DCMAKE_CXX_FLAGS=-m32"
+            "-DCMAKE_C_FLAGS=-m32"
+        )
+        ADDITIONAL_FFMPEG_ARGS=(
+            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+            "--extra-cflags=-m32"
+            "--extra-cxxflags=-m32"
+            "--extra-ldflags=-m32"
+        )
+    fi
 fi
 
 #if [[ "$BUILD_TYPE" = "Debug" ]]; then

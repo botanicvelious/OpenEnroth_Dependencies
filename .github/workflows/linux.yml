@@ -45,6 +45,12 @@ jobs:
         run: |
           sudo apt-get install -y yasm
           sudo apt-get install -y ninja-build
+          
+          if [[ "${{matrix.architecture}}" = "x86" ]]; then
+              sudo dpkg --add-architecture i386
+              sudo apt-get update
+              sudo apt-get install -y gcc-multilib g++-multilib
+          fi
 
       - name: Variables
         run: |
@@ -55,6 +61,7 @@ jobs:
           ./scripts/build_all.sh -j4 linux ${{matrix.architecture}} ${{matrix.configuration}} repos "${{env.ZIP_NAME}}"
 
       - name: Print Info
+        if: always()
         run: |
           ./scripts/print_info.sh
 
