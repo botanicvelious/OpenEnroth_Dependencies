@@ -1,0 +1,117 @@
+name: Build
+
+on:
+  pull_request: null
+  workflow_dispatch:
+    inputs:
+      myCommit:
+        description: Commit SHA1
+        required: false
+        default: ''
+        type: string
+  push:
+    branches:
+      - master
+  release:
+    types:
+      - published
+
+env:
+  DEPS_VERSION: r1
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - Debug
+          - Release
+        target:
+          - windows_x86
+          - windows_x86_64
+          - darwin_arm64
+          - darwin_x86_64
+          - linux_x86
+          - linux_x86_64
+        include:
+          - {target: windows_x86,     platform: windows,  architecture: x86,    os: windows-2022, shell: 'msys2 {0}'}
+          - {target: windows_x86_64,  platform: windows,  architecture: x86_64, os: windows-2022, shell: 'msys2 {0}'}
+          - {target: darwin_arm64,    platform: darwin,   architecture: arm64,  os: macos-13,     shell: bash}
+          - {target: darwin_x86_64,   platform: darwin,   architecture: x86_64, os: macos-13,     shell: bash}
+          - {target: linux_x86,       platform: linux,    architecture: x86,    os: ubuntu-22.04, shell: bash}
+          - {target: linux_x86_64,    platform: linux,    architecture: x86_64, os: ubuntu-22.04, shell: bash}
+    runs-on: ${{matrix.os}}
+    defaults:
+      run:
+        shell: ${{matrix.shell}}
+    steps:
+      - name: 'Inject Slug/Short Variables'
+        uses: rlespinasse/github-slug-action@v4
+
+      - name: '[windows] Setup msys'
+        if: matrix.platform == 'windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: make yasm zip
+          path-type: inherit
+          release: false # Reuse existing msys installation that's part of a runner image.
+
+      - name: 'Checkout'
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          ref: '${{inputs.myCommit}}'
+
+      - name: '[windows] Setup MSVC'
+        if: matrix.platform == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: '${{matrix.architecture}}'
+
+      # Ironically, this is what the official build guide is recommending to do:
+      # https://trac.ffmpeg.org/wiki/CompilationGuide/MSVC
+      - name: '[windows] Drop link.exe'
+        if: matrix.platform == 'windows'
+        run: |
+          rm -rf /usr/bin/link.exe
+          which link.exe
+
+      - name: '[darwin] Install Dependencies'
+        if: matrix.platform == 'darwin'
+        run: |
+          brew install yasm
+          brew install ninja
+
+      - name: '[linux] Install Dependencies'
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get install -y yasm
+          sudo apt-get install -y ninja-build
+          
+          if [[ "${{matrix.architecture}}" = "x86" ]]; then
+              sudo dpkg --add-architecture i386
+              sudo apt-get update
+              sudo apt-get install -y gcc-multilib g++-multilib
+          fi
+
+      - name: 'Variables'
+        run: |
+          echo "ZIP_NAME=${{matrix.platform}}_${{matrix.configuration}}_${{matrix.architecture}}.zip" >> $GITHUB_ENV
+
+      - name: 'Build'
+        run: |
+          ./scripts/build_all.sh -j4 ${{matrix.platform}} ${{matrix.architecture}} ${{matrix.configuration}} repos "${{env.ZIP_NAME}}"
+
+      - name: 'Print Info'
+        if: always()
+        run: |
+          ./scripts/print_info.sh
+
+      - name: 'Publish Release'
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: true
+          tag_name: 'deps_${{env.DEPS_VERSION}}_${{env.GITHUB_REF_NAME_SLUG}}'
+          files: '${{env.ZIP_NAME}}'
