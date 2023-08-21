@@ -79,6 +79,34 @@ elif [[ "$BUILD_PLATFORM" = "windows" ]]; then
         "${ADDITIONAL_FFMPEG_ARGS[@]}"
         "--toolchain=msvc"
     )
+
+    if [[ "$BUILD_TYPE" = "Debug" ]]; then
+        # this is where we set /MTd for ffmpeg on windows
+        ADDITIONAL_FFMPEG_ARGS=(
+            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+             "--enable-debug"
+             "--extra-cflags=\"-MTd\"" 
+             "--extra-cxxflags=\"-MTd\""
+             "--extra-ldflags=\"-nodefaultlib:LIBCMT\""
+        )
+        ADDITIONAL_CMAKE_ARGS=(
+            "${ADDITIONAL_CMAKE_ARGS[@]}"
+            -DCMAKE_C_FLAGS_DEBUG="-MTd -Z7 -Ob2 -Od"
+            -DCMAKE_CXX_FLAGS_DEBUG="-MTd -Z7 -Ob2 -Od"
+        )
+    else 
+        # this is where we set /MT for ffmpeg on windows
+        ADDITIONAL_FFMPEG_ARGS=(
+            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+             "--extra-cflags=\"-MT\"" 
+             "--extra-cxxflags=\"-MT\""
+        )
+        ADDITIONAL_CMAKE_ARGS=(
+            "${ADDITIONAL_CMAKE_ARGS[@]}"
+            -DCMAKE_C_FLAGS_RELEASE="-Z7 -MT -O2 -Ob2"
+            -DCMAKE_CXX_FLAGS_RELEASE="-Z7 -MT -O2 -Ob2"
+        )        
+    fi
 elif [[ "$BUILD_PLATFORM" = "linux" ]]; then
     if [[ "$BUILD_ARCH" = "x86" ]]; then
         ADDITIONAL_CMAKE_ARGS=(
@@ -94,11 +122,6 @@ elif [[ "$BUILD_PLATFORM" = "linux" ]]; then
         )
     fi
 fi
-
-#if [[ "$BUILD_TYPE" = "Debug" ]]; then
-#    # TODO: this is where we set /MTd for windows
-#    # --extra-cflags="-MTd" extra-cxxflags="-MTd" --extra-ldflags="-nodefaultlib:LIBCMT"
-#fi
 
 function cmake_install() {
     local BUILD_TYPE="$1"
@@ -120,8 +143,7 @@ function cmake_install() {
     ninja \
         -C "$BUILD_DIR" \
         $NINJA_ARGS_STRING \
-        install \
-        -v
+        install -v
 }
 
 function ffmpeg_install() {
@@ -206,8 +228,7 @@ function ffmpeg_install() {
     make \
         -C "$BUILD_DIR" \
         $MAKE_ARGS_STRING \
-        install \
-        V=1
+        install V=1
 
     # On windows under msys we get file names is if we were on linux, and cmake find_package can't see them.
     # So we need to fix the file names. Note that .a and .lib are identical file format-wise.

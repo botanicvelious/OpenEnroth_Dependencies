@@ -17,7 +17,7 @@ on:
       - published
 
 env:
-  DEPS_VERSION: r1
+  DEPS_VERSION: r2
 
 jobs:
   build:
