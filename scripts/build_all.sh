@@ -123,6 +123,16 @@ elif [[ "$BUILD_PLATFORM" = "linux" ]]; then
     fi
 fi
 
+function replace_in_file() {
+    local FILE_PATH="$1"
+    local PATTERN="$2"
+    local REPLACEMENT="$3"
+
+    # MacOS sed doesn't have -i, so we have to copy & move.
+    sed -e "s/$PATTERN/$REPLACEMENT/" "$FILE_PATH" >"$FILE_PATH.fixed"
+    mv "$FILE_PATH.fixed" "$FILE_PATH"
+}
+
 function cmake_install() {
     local BUILD_TYPE="$1"
     local SOURCE_DIR="$2"
@@ -219,9 +229,10 @@ function ffmpeg_install() {
     popd
 
     # We don't want to link with bcrypt. This is windows-only, but doesn't really need an if around it.
-    # MacOS sed doesn't have -i, so we have to copy & move.
-    sed -e "s/#define HAVE_BCRYPT [01]/#define HAVE_BCRYPT 0/" "$BUILD_DIR/config.h" >"$BUILD_DIR/config_fixed.h"
-    mv "$BUILD_DIR/config_fixed.h" "$BUILD_DIR/config.h"
+    replace_in_file \
+        "$BUILD_DIR/config.h" \
+        "#define HAVE_BCRYPT [01]" \
+        "#define HAVE_BCRYPT 0"
     cat "$BUILD_DIR/config.h" | grep "HAVE_BCRYPT"
 
     # $MAKE_ARGS_STRING will glob, this is intentional.
