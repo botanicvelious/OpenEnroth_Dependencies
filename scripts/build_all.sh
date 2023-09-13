@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Parse args.
-if [[ "$1" = "-h" ]]; then
+if [[ "$1" == "-h" ]]; then
     echo "Usage: $(basename "$0") [-jTHREADS] BUILD_PLATFORM BUILD_ARCH BUILD_TYPE REPOS_DIR TARGET_ZIP"
     exit 1
 fi
 
 THREADS_ARG=
-if [[ "$1" = -j* ]]; then
+if [[ "$1" == -j* ]]; then
     THREADS_ARG="$1"
     shift 1
 fi
@@ -26,6 +26,12 @@ TARGET_ZIP="$5"
 # Echo on, fail on errors, fail on undefined var usage, fail on pipeline failure.
 set -euxo pipefail
 
+# Check ANDROID_NDK.
+if [[ "$BUILD_PLATFORM" == "android" && "$ANDROID_NDK" == "" ]]; then
+    echo "Please provide path to your NDK via NDK environment variable!"
+    exit 1
+fi
+
 # Set up dir vars.
 TMP_DIR="./tmp"
 BUILD_DIR="$TMP_DIR/build"
@@ -33,7 +39,7 @@ INSTALL_DIR="$TMP_DIR/install"
 
 # SDL install requires absolute paths for some reason.
 function make_absolute() {
-    if [[ "$1" = /* ]]; then
+    if [[ "$1" == /* ]]; then
         echo "$1"
     else
         echo "$(pwd)/$1"
@@ -57,10 +63,10 @@ ADDITIONAL_FFMPEG_ARGS=(
     "--arch=$BUILD_ARCH"
 )
 
-if [[ "$BUILD_PLATFORM" = "darwin" ]]; then
+if [[ "$BUILD_PLATFORM" == "darwin" ]]; then
     # Deployment target is in sync with what's set in the main OE repo in the root CMakeLists.txt.
     export MACOSX_DEPLOYMENT_TARGET="11"
-    if [[ "$BUILD_ARCH" = x86_64 ]]; then
+    if [[ "$BUILD_ARCH" == "x86_64" ]]; then
         export MACOSX_DEPLOYMENT_TARGET="10.15"
     fi
 
@@ -74,13 +80,13 @@ if [[ "$BUILD_PLATFORM" = "darwin" ]]; then
         "${ADDITIONAL_CMAKE_ARGS[@]}"
         "-DCMAKE_OSX_ARCHITECTURES=$BUILD_ARCH"
     )
-elif [[ "$BUILD_PLATFORM" = "windows" ]]; then
+elif [[ "$BUILD_PLATFORM" == "windows" ]]; then
     ADDITIONAL_FFMPEG_ARGS=(
         "${ADDITIONAL_FFMPEG_ARGS[@]}"
         "--toolchain=msvc"
     )
 
-    if [[ "$BUILD_TYPE" = "Debug" ]]; then
+    if [[ "$BUILD_TYPE" == "Debug" ]]; then
         # this is where we set /MTd for ffmpeg on windows
         ADDITIONAL_FFMPEG_ARGS=(
             "${ADDITIONAL_FFMPEG_ARGS[@]}"
@@ -107,8 +113,8 @@ elif [[ "$BUILD_PLATFORM" = "windows" ]]; then
             -DCMAKE_CXX_FLAGS_RELEASE="-Z7 -MT -O2 -Ob2"
         )        
     fi
-elif [[ "$BUILD_PLATFORM" = "linux" ]]; then
-    if [[ "$BUILD_ARCH" = "x86" ]]; then
+elif [[ "$BUILD_PLATFORM" == "linux" ]]; then
+    if [[ "$BUILD_ARCH" == "x86" ]]; then
         ADDITIONAL_CMAKE_ARGS=(
             "${ADDITIONAL_CMAKE_ARGS[@]}"
             "-DCMAKE_CXX_FLAGS=-m32"
@@ -121,6 +127,62 @@ elif [[ "$BUILD_PLATFORM" = "linux" ]]; then
             "--extra-ldflags=-m32"
         )
     fi
+elif [[ "$BUILD_PLATFORM" == "android" ]]; then
+    if [[ "$BUILD_ARCH" == "arm32" ]]; then
+        ANDROID_ARCH_PREFIX=armv7a-linux-androideabi
+        ADDITIONAL_FFMPEG_ARGS=(
+            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+            "--cpu=cortex-a8"
+            "--enable-neon"
+            "--enable-thumb"
+            "--extra-cflags=-march=armv7-a"
+            "--extra-cflags=-mcpu=cortex-a8"
+            "--extra-cflags=-mfpu=vfpv3-d16"
+            "--extra-cflags=-mfloat-abi=softfp"
+            "--extra-cflags=-mthumb"
+            "--extra-ldflags=-Wl,--fix-cortex-a8"
+        )
+    elif [[ "$BUILD_ARCH" == "arm64" ]]; then
+        ANDROID_ARCH_PREFIX=aarch64-linux-android
+        ADDITIONAL_FFMPEG_ARGS=(
+            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+            "--enable-neon"
+        )
+    elif [[ "$BUILD_ARCH" == "x86" ]]; then
+        ANDROID_ARCH_PREFIX=i686-linux-android
+        ADDITIONAL_FFMPEG_ARGS=(
+            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+            "--disable-asm" # Need the old gcc toolchain for x86 asm to work.
+            "--extra-cflags=-march=atom"
+            "--extra-cflags=-msse3"
+            "--extra-cflags=-ffast-math"
+            "--extra-cflags=-mfpmath=sse"
+        )
+    elif [[ "$BUILD_ARCH" == "x86_64" ]]; then
+        ANDROID_ARCH_PREFIX=x86_64-linux-android
+        ADDITIONAL_FFMPEG_ARGS=(
+            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+            "--enable-x86asm"
+            "--extra-cflags=-march=atom"
+            "--extra-cflags=-msse3"
+            "--extra-cflags=-ffast-math"
+            "--extra-cflags=-mfpmath=sse"
+        )
+    fi
+
+    ANDROID_PLATFORM_VERSION=21
+    ANDROID_TOOLCHAIN=${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64
+
+    ADDITIONAL_FFMPEG_ARGS=(
+        "${ADDITIONAL_FFMPEG_ARGS[@]}"
+        "--disable-vulkan" # Compilation fails to find vulkan_beta.h.
+        "--cross-prefix=${ANDROID_TOOLCHAIN}/bin/llvm-"
+        "--cc=${ANDROID_TOOLCHAIN}/bin/${ANDROID_ARCH_PREFIX}${ANDROID_PLATFORM_VERSION}-clang"
+        "--cxx=${ANDROID_TOOLCHAIN}/bin/${ANDROID_ARCH_PREFIX}${ANDROID_PLATFORM_VERSION}-clang++"
+        "--target-os=linux"
+        "--pkg-config=pkg-config"
+        "--sysroot=${ANDROID_TOOLCHAIN}/sysroot/"
+    )
 fi
 
 function replace_in_file() {
@@ -243,7 +305,7 @@ function ffmpeg_install() {
 
     # On windows under msys we get file names is if we were on linux, and cmake find_package can't see them.
     # So we need to fix the file names. Note that .a and .lib are identical file format-wise.
-    if [[ "$BUILD_PLATFORM" = "windows" ]]; then
+    if [[ "$BUILD_PLATFORM" == "windows" ]]; then
         pushd "$INSTALL_DIR/lib"
         for FILE_NAME in *.a; do
             NEW_FILE_NAME="$FILE_NAME"
@@ -269,29 +331,33 @@ ffmpeg_install \
     "$ADDITIONAL_MAKE_ARGS_STRING" \
     "${ADDITIONAL_FFMPEG_ARGS[@]}"
 
-# zlib builds both shared & static
-cmake_install \
-    "$BUILD_TYPE" \
-    "$REPOS_DIR/zlib" \
-    "$BUILD_DIR/zlib" \
-    "$INSTALL_DIR" \
-    "$ADDITIONAL_MAKE_ARGS_STRING" \
-    "${ADDITIONAL_CMAKE_ARGS[@]}" \
-    "-DCMAKE_DEBUG_POSTFIX=d" # This is needed for non-config find_package to work.
+if [[ "$BUILD_PLATFORM" != "android" ]]; then
+    # zlib builds both shared & static
+    cmake_install \
+        "$BUILD_TYPE" \
+        "$REPOS_DIR/zlib" \
+        "$BUILD_DIR/zlib" \
+        "$INSTALL_DIR" \
+        "$ADDITIONAL_MAKE_ARGS_STRING" \
+        "${ADDITIONAL_CMAKE_ARGS[@]}" \
+        "-DCMAKE_DEBUG_POSTFIX=d" # This is needed for non-config find_package to work.
+fi
 
-cmake_install \
-    "$BUILD_TYPE" \
-    "$REPOS_DIR/openal_soft" \
-    "$BUILD_DIR/openal_soft" \
-    "$INSTALL_DIR" \
-    "$ADDITIONAL_MAKE_ARGS_STRING" \
-    "${ADDITIONAL_CMAKE_ARGS[@]}" \
-    "-DLIBTYPE=STATIC" \
-    "-DALSOFT_UTILS=OFF" \
-    "-DALSOFT_EXAMPLES=OFF" \
-    "-DALSOFT_TESTS=OFF"
+if [[ "$BUILD_PLATFORM" != "android" ]]; then
+    cmake_install \
+        "$BUILD_TYPE" \
+        "$REPOS_DIR/openal_soft" \
+        "$BUILD_DIR/openal_soft" \
+        "$INSTALL_DIR" \
+        "$ADDITIONAL_MAKE_ARGS_STRING" \
+        "${ADDITIONAL_CMAKE_ARGS[@]}" \
+        "-DLIBTYPE=STATIC" \
+        "-DALSOFT_UTILS=OFF" \
+        "-DALSOFT_EXAMPLES=OFF" \
+        "-DALSOFT_TESTS=OFF"
+fi
 
-if [[ "$BUILD_PLATFORM" != "linux" ]]; then
+if [[ "$BUILD_PLATFORM" != "linux" && "$BUILD_PLATFORM" != "android" ]]; then
     # Pre-building SDL on linux makes very little sense. Do we enable x11? Wayland? Something else?
     cmake_install \
         "$BUILD_TYPE" \

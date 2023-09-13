@@ -18,6 +18,8 @@ on:
 
 env:
   DEPS_VERSION: r2
+  # NDK version should match with the one in the main repo!
+  NDK_REVISION: r26-rc1
 
 jobs:
   build:
@@ -34,13 +36,21 @@ jobs:
           - darwin_x86_64
           - linux_x86
           - linux_x86_64
+          - android_x86
+          - android_x86_64
+          - android_arm32
+          - android_arm64
         include:
-          - {target: windows_x86,     platform: windows,  architecture: x86,    os: windows-2022, shell: 'msys2 {0}'}
-          - {target: windows_x86_64,  platform: windows,  architecture: x86_64, os: windows-2022, shell: 'msys2 {0}'}
-          - {target: darwin_arm64,    platform: darwin,   architecture: arm64,  os: macos-13,     shell: bash}
-          - {target: darwin_x86_64,   platform: darwin,   architecture: x86_64, os: macos-13,     shell: bash}
-          - {target: linux_x86,       platform: linux,    architecture: x86,    os: ubuntu-22.04, shell: bash}
-          - {target: linux_x86_64,    platform: linux,    architecture: x86_64, os: ubuntu-22.04, shell: bash}
+          - {target: windows_x86,       platform: windows,  architecture: x86,        os: windows-2022, shell: 'msys2 {0}'}
+          - {target: windows_x86_64,    platform: windows,  architecture: x86_64,     os: windows-2022, shell: 'msys2 {0}'}
+          - {target: darwin_arm64,      platform: darwin,   architecture: arm64,      os: macos-13,     shell: bash}
+          - {target: darwin_x86_64,     platform: darwin,   architecture: x86_64,     os: macos-13,     shell: bash}
+          - {target: linux_x86,         platform: linux,    architecture: x86,        os: ubuntu-22.04, shell: bash}
+          - {target: linux_x86_64,      platform: linux,    architecture: x86_64,     os: ubuntu-22.04, shell: bash}
+          - {target: android_x86,       platform: android,  architecture: x86,        os: ubuntu-22.04, shell: bash}
+          - {target: android_x86_64,    platform: android,  architecture: x86_64,     os: ubuntu-22.04, shell: bash}
+          - {target: android_arm32,     platform: android,  architecture: arm32,      os: ubuntu-22.04, shell: bash}
+          - {target: android_arm64,     platform: android,  architecture: arm64,      os: ubuntu-22.04, shell: bash}
     runs-on: ${{matrix.os}}
     defaults:
       run:
@@ -78,7 +88,7 @@ jobs:
           rm -rf /usr/bin/link.exe
           which link.exe
 
-      - name: '[darwin] Install Dependencies'
+      - name: '[darwin] Install dependencies'
         if: matrix.platform == 'darwin'
         run: |
           brew install yasm
@@ -96,6 +106,28 @@ jobs:
               sudo apt-get install -y gcc-multilib g++-multilib
           fi
 
+      - name: '[android] Install Dependencies'
+        if: matrix.platform == 'android'
+        run: |
+          if [[ "${{matrix.architecture}}" = "x86_64" ]]; then
+              sudo apt-get install -y yasm
+          fi
+
+      - name: '[android] Setup NDK'
+        if: matrix.platform == 'android'
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1.3.1
+        with:
+          ndk-version: '${{env.NDK_REVISION}}'
+          add-to-path: false
+          local-cache: true
+          link-to-sdk: true
+
+      - name: '[android] Set ANDROID_NDK'
+        if: matrix.platform == 'android'
+        run: |
+          echo "ANDROID_NDK=${{steps.setup-ndk.outputs.ndk-path}}" >> $GITHUB_ENV          
+
       - name: 'Variables'
         run: |
           echo "ZIP_NAME=${{matrix.platform}}_${{matrix.configuration}}_${{matrix.architecture}}.zip" >> $GITHUB_ENV
@@ -104,14 +136,15 @@ jobs:
         run: |
           ./scripts/build_all.sh -j4 ${{matrix.platform}} ${{matrix.architecture}} ${{matrix.configuration}} repos "${{env.ZIP_NAME}}"
 
-      - name: 'Print Info'
+      - name: 'Print info'
         if: always()
         run: |
           ./scripts/print_info.sh
 
-      - name: 'Publish Release'
+      - name: 'Publish release'
         uses: softprops/action-gh-release@v1
         with:
           prerelease: true
           tag_name: 'deps_${{env.DEPS_VERSION}}_${{env.GITHUB_REF_NAME_SLUG}}'
           files: '${{env.ZIP_NAME}}'
+
