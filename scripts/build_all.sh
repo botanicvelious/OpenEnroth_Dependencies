@@ -57,124 +57,96 @@ rm -rf "$INSTALL_DIR"
 rm -f "$TARGET_ZIP"
 
 # Figure out additional args.
-ADDITIONAL_CMAKE_ARGS=
+ADDITIONAL_CMAKE_ARGS=()
 ADDITIONAL_MAKE_ARGS_STRING="$THREADS_ARG"
 ADDITIONAL_FFMPEG_ARGS=(
     "--arch=$BUILD_ARCH"
 )
 
 if [[ "$BUILD_PLATFORM" == "darwin" ]]; then
-    # Deployment target is in sync with what's set in the main OE repo in the root CMakeLists.txt.
+    # Deployment target is in sync with what's set in the main OE repo in macos.yml.
     export MACOSX_DEPLOYMENT_TARGET="11"
     if [[ "$BUILD_ARCH" == "x86_64" ]]; then
         export MACOSX_DEPLOYMENT_TARGET="10.15"
     fi
 
-    ADDITIONAL_FFMPEG_ARGS=(
-        "${ADDITIONAL_FFMPEG_ARGS[@]}"
+    ADDITIONAL_FFMPEG_ARGS+=(
         "--extra-cflags=-arch $BUILD_ARCH"
-        "--extra-cxxflags=-arch $BUILD_ARCH"
         "--extra-ldflags=-arch $BUILD_ARCH"
     )
-    ADDITIONAL_CMAKE_ARGS=(
-        "${ADDITIONAL_CMAKE_ARGS[@]}"
+    ADDITIONAL_CMAKE_ARGS+=(
         "-DCMAKE_OSX_ARCHITECTURES=$BUILD_ARCH"
     )
 elif [[ "$BUILD_PLATFORM" == "windows" ]]; then
-    ADDITIONAL_FFMPEG_ARGS=(
-        "${ADDITIONAL_FFMPEG_ARGS[@]}"
+    ADDITIONAL_FFMPEG_ARGS+=(
         "--toolchain=msvc"
     )
 
     if [[ "$BUILD_TYPE" == "Debug" ]]; then
         # this is where we set /MTd for ffmpeg on windows
-        ADDITIONAL_FFMPEG_ARGS=(
-            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+        ADDITIONAL_FFMPEG_ARGS+=(
              "--enable-debug"
-             "--extra-cflags=\"-MTd\"" 
-             "--extra-cxxflags=\"-MTd\""
-             "--extra-ldflags=\"-nodefaultlib:LIBCMT\""
+             "--extra-cflags=-MTd"
+             "--extra-ldflags=-nodefaultlib:LIBCMT"
         )
-        ADDITIONAL_CMAKE_ARGS=(
-            "${ADDITIONAL_CMAKE_ARGS[@]}"
-            -DCMAKE_C_FLAGS_DEBUG="-MTd -Z7 -Ob2 -Od"
-            -DCMAKE_CXX_FLAGS_DEBUG="-MTd -Z7 -Ob2 -Od"
+        ADDITIONAL_CMAKE_ARGS+=(
+            "-DCMAKE_C_FLAGS_DEBUG=-MTd -Z7 -Ob2 -Od"
+            "-DCMAKE_CXX_FLAGS_DEBUG=-MTd -Z7 -Ob2 -Od"
         )
     else 
         # this is where we set /MT for ffmpeg on windows
-        ADDITIONAL_FFMPEG_ARGS=(
-            "${ADDITIONAL_FFMPEG_ARGS[@]}"
-             "--extra-cflags=\"-MT\"" 
-             "--extra-cxxflags=\"-MT\""
+        ADDITIONAL_FFMPEG_ARGS+=(
+             "--extra-cflags=-MT"
         )
-        ADDITIONAL_CMAKE_ARGS=(
-            "${ADDITIONAL_CMAKE_ARGS[@]}"
-            -DCMAKE_C_FLAGS_RELEASE="-Z7 -MT -O2 -Ob2"
-            -DCMAKE_CXX_FLAGS_RELEASE="-Z7 -MT -O2 -Ob2"
+        ADDITIONAL_CMAKE_ARGS+=(
+            "-DCMAKE_C_FLAGS_RELEASE=-Z7 -MT -O2 -Ob2"
+            "-DCMAKE_CXX_FLAGS_RELEASE=-Z7 -MT -O2 -Ob2"
         )        
     fi
 elif [[ "$BUILD_PLATFORM" == "linux" ]]; then
     if [[ "$BUILD_ARCH" == "x86" ]]; then
-        ADDITIONAL_CMAKE_ARGS=(
-            "${ADDITIONAL_CMAKE_ARGS[@]}"
+        ADDITIONAL_CMAKE_ARGS+=(
             "-DCMAKE_CXX_FLAGS=-m32"
             "-DCMAKE_C_FLAGS=-m32"
         )
-        ADDITIONAL_FFMPEG_ARGS=(
-            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+        ADDITIONAL_FFMPEG_ARGS+=(
             "--extra-cflags=-m32"
-            "--extra-cxxflags=-m32"
             "--extra-ldflags=-m32"
         )
     fi
 elif [[ "$BUILD_PLATFORM" == "android" ]]; then
     if [[ "$BUILD_ARCH" == "arm32" ]]; then
         ANDROID_ARCH_PREFIX=armv7a-linux-androideabi
-        ADDITIONAL_FFMPEG_ARGS=(
-            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+        ADDITIONAL_FFMPEG_ARGS+=(
             "--cpu=cortex-a8"
             "--enable-neon"
             "--enable-thumb"
-            "--extra-cflags=-march=armv7-a"
-            "--extra-cflags=-mcpu=cortex-a8"
-            "--extra-cflags=-mfpu=vfpv3-d16"
-            "--extra-cflags=-mfloat-abi=softfp"
-            "--extra-cflags=-mthumb"
+            "--extra-cflags=-march=armv7-a -mcpu=cortex-a8 -mfpu=vfpv3-d16 -mfloat-abi=softfp -mthumb"
             "--extra-ldflags=-Wl,--fix-cortex-a8"
         )
     elif [[ "$BUILD_ARCH" == "arm64" ]]; then
         ANDROID_ARCH_PREFIX=aarch64-linux-android
-        ADDITIONAL_FFMPEG_ARGS=(
-            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+        ADDITIONAL_FFMPEG_ARGS+=(
             "--enable-neon"
         )
     elif [[ "$BUILD_ARCH" == "x86" ]]; then
         ANDROID_ARCH_PREFIX=i686-linux-android
-        ADDITIONAL_FFMPEG_ARGS=(
-            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+        ADDITIONAL_FFMPEG_ARGS+=(
             "--disable-asm" # Need the old gcc toolchain for x86 asm to work.
-            "--extra-cflags=-march=atom"
-            "--extra-cflags=-msse3"
-            "--extra-cflags=-ffast-math"
-            "--extra-cflags=-mfpmath=sse"
+            "--extra-cflags=-march=atom -msse3 -ffast-math -mfpmath=sse"
         )
     elif [[ "$BUILD_ARCH" == "x86_64" ]]; then
         ANDROID_ARCH_PREFIX=x86_64-linux-android
-        ADDITIONAL_FFMPEG_ARGS=(
-            "${ADDITIONAL_FFMPEG_ARGS[@]}"
+        ADDITIONAL_FFMPEG_ARGS+=(
             "--enable-x86asm"
-            "--extra-cflags=-march=atom"
-            "--extra-cflags=-msse3"
-            "--extra-cflags=-ffast-math"
-            "--extra-cflags=-mfpmath=sse"
+            "--extra-cflags=-march=atom -msse3 -ffast-math -mfpmath=sse"
         )
     fi
 
     ANDROID_PLATFORM_VERSION=21
     ANDROID_TOOLCHAIN=${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64
 
-    ADDITIONAL_FFMPEG_ARGS=(
-        "${ADDITIONAL_FFMPEG_ARGS[@]}"
+    ADDITIONAL_FFMPEG_ARGS+=(
         "--disable-vulkan" # Compilation fails to find vulkan_beta.h.
         "--cross-prefix=${ANDROID_TOOLCHAIN}/bin/llvm-"
         "--cc=${ANDROID_TOOLCHAIN}/bin/${ANDROID_ARCH_PREFIX}${ANDROID_PLATFORM_VERSION}-clang"
@@ -208,7 +180,7 @@ function cmake_install() {
         -B "$BUILD_DIR" \
         -G "Ninja" \
         "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" \
-        "-DCMAKE_INSTALL_PREFIX:PATH=$INSTALL_DIR" \
+        "-DCMAKE_INSTALL_PREFIX=$INSTALL_DIR" \
         "$@"
 
     # $NINJA_ARGS_STRING will glob, this is intentional.
