@@ -91,7 +91,7 @@ jobs:
       - name: '[darwin] Install dependencies'
         if: matrix.platform == 'darwin'
         run: |
-          brew install yasm ninja
+          brew install yasm
 
       - name: '[linux] Install Dependencies'
         if: matrix.platform == 'linux'
@@ -103,7 +103,7 @@ jobs:
           fi
 
           sudo apt-get update
-          sudo apt-get install -y yasm ninja-build
+          sudo apt-get install -y yasm
           [[ ! -z "$ARCH" ]] && sudo apt-get install -y gcc-multilib g++-multilib
           
           # libasound2-dev is for ALSA, libpulse-dev is for PulseAudio, we want to have both as backends for OpenAL.
