@@ -63,6 +63,11 @@ ADDITIONAL_FFMPEG_ARGS=(
     "--arch=$BUILD_ARCH"
 )
 
+# Set up default SDL build mode.
+SDL_BUILD_STATIC="ON"
+SDL_BUILD_SHARED="OFF"
+
+# Set platform-specific options.
 if [[ "$BUILD_PLATFORM" == "darwin" ]]; then
     # Deployment target is in sync with what's set in the main OE repo in macos.yml.
     export MACOSX_DEPLOYMENT_TARGET="11"
@@ -176,6 +181,11 @@ elif [[ "$BUILD_PLATFORM" == "android" ]]; then
         "-DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake"
         "-DANDROID_STL=c++_static"
     )
+
+    # On Android we build shared SDL so that we don't have to patch SDLActivity.getLibraries, which instructs SDL
+    # java runtime to load libSDL2.so first.
+    SDL_BUILD_STATIC="OFF"
+    SDL_BUILD_SHARED="ON"
 fi
 
 function replace_in_file() {
@@ -325,7 +335,7 @@ ffmpeg_install \
     "${ADDITIONAL_FFMPEG_ARGS[@]}"
 
 if [[ "$BUILD_PLATFORM" != "android" ]]; then
-    # zlib builds both shared & static
+    # zlib builds both shared & static.
     cmake_install \
         "$BUILD_TYPE" \
         "$REPOS_DIR/zlib" \
@@ -348,7 +358,7 @@ cmake_install \
     "-DALSOFT_EXAMPLES=OFF" \
     "-DALSOFT_TESTS=OFF"
 
-if [[ "$BUILD_PLATFORM" != "linux" && "$BUILD_PLATFORM" != "android" ]]; then
+if [[ "$BUILD_PLATFORM" != "linux" ]]; then
     # Pre-building SDL on linux makes very little sense. Do we enable x11? Wayland? Something else?
     cmake_install \
         "$BUILD_TYPE" \
@@ -357,8 +367,8 @@ if [[ "$BUILD_PLATFORM" != "linux" && "$BUILD_PLATFORM" != "android" ]]; then
         "$INSTALL_DIR" \
         "$ADDITIONAL_THREADS_ARG_STRING" \
         "${ADDITIONAL_CMAKE_ARGS[@]}" \
-        "-DSDL_STATIC=ON" \
-        "-DSDL_SHARED=OFF" \
+        "-DSDL_STATIC=$SDL_BUILD_STATIC" \
+        "-DSDL_SHARED=$SDL_BUILD_SHARED" \
         "-DSDL_TEST=OFF"
 fi
 
