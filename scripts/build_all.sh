@@ -318,19 +318,17 @@ if [[ "$BUILD_PLATFORM" != "android" ]]; then
         "-DCMAKE_DEBUG_POSTFIX=d" # This is needed for non-config find_package to work.
 fi
 
-if [[ "$BUILD_PLATFORM" != "android" ]]; then
-    cmake_install \
-        "$BUILD_TYPE" \
-        "$REPOS_DIR/openal_soft" \
-        "$BUILD_DIR/openal_soft" \
-        "$INSTALL_DIR" \
-        "$ADDITIONAL_THREADS_ARG_STRING" \
-        "${ADDITIONAL_CMAKE_ARGS[@]}" \
-        "-DLIBTYPE=STATIC" \
-        "-DALSOFT_UTILS=OFF" \
-        "-DALSOFT_EXAMPLES=OFF" \
-        "-DALSOFT_TESTS=OFF"
-fi
+cmake_install \
+    "$BUILD_TYPE" \
+    "$REPOS_DIR/openal_soft" \
+    "$BUILD_DIR/openal_soft" \
+    "$INSTALL_DIR" \
+    "$ADDITIONAL_THREADS_ARG_STRING" \
+    "${ADDITIONAL_CMAKE_ARGS[@]}" \
+    "-DLIBTYPE=STATIC" \
+    "-DALSOFT_UTILS=OFF" \
+    "-DALSOFT_EXAMPLES=OFF" \
+    "-DALSOFT_TESTS=OFF"
 
 if [[ "$BUILD_PLATFORM" != "linux" && "$BUILD_PLATFORM" != "android" ]]; then
     # Pre-building SDL on linux makes very little sense. Do we enable x11? Wayland? Something else?
