@@ -57,8 +57,8 @@ rm -rf "$INSTALL_DIR"
 rm -f "$TARGET_ZIP"
 
 # Figure out additional args.
+ADDITIONAL_THREADS_ARG_STRING="$THREADS_ARG"
 ADDITIONAL_CMAKE_ARGS=()
-ADDITIONAL_MAKE_ARGS_STRING="$THREADS_ARG"
 ADDITIONAL_FFMPEG_ARGS=(
     "--arch=$BUILD_ARCH"
 )
@@ -80,6 +80,9 @@ if [[ "$BUILD_PLATFORM" == "darwin" ]]; then
 elif [[ "$BUILD_PLATFORM" == "windows" ]]; then
     ADDITIONAL_FFMPEG_ARGS+=(
         "--toolchain=msvc"
+    )
+    ADDITIONAL_CMAKE_ARGS+=(
+        "-GNinja" # Use Ninja on windows. Default is MSVC project files, which are multi-config, and it's a mess.
     )
 
     if [[ "$BUILD_TYPE" == "Debug" ]]; then
@@ -172,22 +175,22 @@ function cmake_install() {
     local SOURCE_DIR="$2"
     local BUILD_DIR="$3"
     local INSTALL_DIR="$4"
-    local NINJA_ARGS_STRING="$5"
+    local THREADS_ARG_STRING="$5"
     shift 5 # The rest are cmake args
 
     cmake \
         -S "$SOURCE_DIR" \
         -B "$BUILD_DIR" \
-        -G "Ninja" \
         "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" \
         "-DCMAKE_INSTALL_PREFIX=$INSTALL_DIR" \
         "$@"
 
-    # $NINJA_ARGS_STRING will glob, this is intentional.
-    ninja \
-        -C "$BUILD_DIR" \
-        $NINJA_ARGS_STRING \
-        install -v
+    # $THREADS_ARG_STRING will glob, this is intentional.
+    cmake \
+        --build "$BUILD_DIR" \
+        $THREADS_ARG_STRING \
+        --verbose \
+        --target install
 }
 
 function ffmpeg_install() {
@@ -195,7 +198,7 @@ function ffmpeg_install() {
     local SOURCE_DIR="$1"
     local BUILD_DIR="$2"
     local INSTALL_DIR="$3"
-    local MAKE_ARGS_STRING="$4"
+    local THREADS_ARG_STRING="$4"
     shift 4 # The rest are configure args
 
     mkdir -p "$BUILD_DIR"
@@ -269,10 +272,10 @@ function ffmpeg_install() {
         "#define HAVE_BCRYPT 0"
     cat "$BUILD_DIR/config.h" | grep "HAVE_BCRYPT"
 
-    # $MAKE_ARGS_STRING will glob, this is intentional.
+    # $THREADS_ARG_STRING will glob, this is intentional.
     make \
         -C "$BUILD_DIR" \
-        $MAKE_ARGS_STRING \
+        $THREADS_ARG_STRING \
         install V=1
 
     # On windows under msys we get file names is if we were on linux, and cmake find_package can't see them.
@@ -300,7 +303,7 @@ ffmpeg_install \
     "$REPOS_DIR/ffmpeg" \
     "$BUILD_DIR/ffmpeg" \
     "$INSTALL_DIR" \
-    "$ADDITIONAL_MAKE_ARGS_STRING" \
+    "$ADDITIONAL_THREADS_ARG_STRING" \
     "${ADDITIONAL_FFMPEG_ARGS[@]}"
 
 if [[ "$BUILD_PLATFORM" != "android" ]]; then
@@ -310,7 +313,7 @@ if [[ "$BUILD_PLATFORM" != "android" ]]; then
         "$REPOS_DIR/zlib" \
         "$BUILD_DIR/zlib" \
         "$INSTALL_DIR" \
-        "$ADDITIONAL_MAKE_ARGS_STRING" \
+        "$ADDITIONAL_THREADS_ARG_STRING" \
         "${ADDITIONAL_CMAKE_ARGS[@]}" \
         "-DCMAKE_DEBUG_POSTFIX=d" # This is needed for non-config find_package to work.
 fi
@@ -321,7 +324,7 @@ if [[ "$BUILD_PLATFORM" != "android" ]]; then
         "$REPOS_DIR/openal_soft" \
         "$BUILD_DIR/openal_soft" \
         "$INSTALL_DIR" \
-        "$ADDITIONAL_MAKE_ARGS_STRING" \
+        "$ADDITIONAL_THREADS_ARG_STRING" \
         "${ADDITIONAL_CMAKE_ARGS[@]}" \
         "-DLIBTYPE=STATIC" \
         "-DALSOFT_UTILS=OFF" \
@@ -336,7 +339,7 @@ if [[ "$BUILD_PLATFORM" != "linux" && "$BUILD_PLATFORM" != "android" ]]; then
         "$REPOS_DIR/sdl" \
         "$BUILD_DIR/sdl" \
         "$INSTALL_DIR" \
-        "$ADDITIONAL_MAKE_ARGS_STRING" \
+        "$ADDITIONAL_THREADS_ARG_STRING" \
         "${ADDITIONAL_CMAKE_ARGS[@]}" \
         "-DSDL_STATIC=ON" \
         "-DSDL_SHARED=OFF" \
