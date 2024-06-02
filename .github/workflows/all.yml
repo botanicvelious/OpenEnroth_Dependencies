@@ -17,9 +17,9 @@ on:
       - published
 
 env:
-  DEPS_VERSION: r2
+  DEPS_VERSION: r3
   # NDK version should match with the one in the main repo!
-  NDK_REVISION: r26-rc1
+  NDK_REVISION: r26d
 
 jobs:
   build:
