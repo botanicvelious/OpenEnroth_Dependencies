@@ -29,6 +29,7 @@ jobs:
         configuration:
           - Debug
           - Release
+          - relwithdebinfo 
         target:
           - windows_x86
           - windows_x86_64
