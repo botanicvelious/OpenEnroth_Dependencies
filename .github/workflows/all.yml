@@ -110,6 +110,25 @@ jobs:
           # libasound2-dev is for ALSA, libpulse-dev is for PulseAudio, we want to have both as backends for OpenAL.
           sudo apt-get install -y "libasound2-dev$ARCH" "libpulse-dev$ARCH"
 
+      - name: '[linux] Checkout libdwarf'
+        uses: actions/checkout@v4
+        with:
+          repository: davea42/libdwarf-code
+          path: libdwarf-code
+          ref: 'v0.10.0'
+
+      - name: '[linux] Build libdwarf'
+        run: |
+            if [[ "${{matrix.architecture}}" = "x86" ]]; then
+              autoreconf --warnings=all --install --verbose --force --build=i686-pc-linux-gnu
+            else 
+              autoreconf --warnings=all --install --verbose --force
+            fi
+            ./configure --disable-decompression --enable-static --disable-shared
+            make -j5 
+            sudo make V=1 install 
+            ls -lha /usr/local/lib/libdwarf.a
+
       - name: '[android] Install Dependencies'
         if: matrix.platform == 'android'
         run: |
@@ -139,7 +158,7 @@ jobs:
       - name: 'Build'
         run: |
           ./scripts/build_all.sh -j4 ${{matrix.platform}} ${{matrix.architecture}} ${{matrix.configuration}} repos "${{env.ZIP_NAME}}"
-
+            
       - name: 'Print info'
         if: always()
         run: |
