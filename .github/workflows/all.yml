@@ -17,7 +17,7 @@ on:
       - published
 
 env:
-  DEPS_VERSION: r4
+  DEPS_VERSION: r3
   # NDK version should match with the one in the main repo!
   NDK_REVISION: r26d
 
@@ -28,6 +28,7 @@ jobs:
       matrix:
         configuration:
           - Debug
+          - Release
           - RelWithDebInfo
         target:
           - windows_x86
