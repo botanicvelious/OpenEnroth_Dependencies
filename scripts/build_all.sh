@@ -90,6 +90,9 @@ elif [[ "$BUILD_PLATFORM" == "windows" ]]; then
         "-GNinja" # Use Ninja on windows. Default is MSVC project files, which are multi-config, and it's a mess.
     )
 
+    # Note that we have to set CMAKE_(C|CXX)_FLAGS_(DEBUG|RELEASE|RELWITHDEBINFO) here and not CMAKE_(C|CXX)_FLAGS
+    # because the former are appended to the latter in the compiler command line.
+
     if [[ "$BUILD_TYPE" == "Debug" ]]; then
         # this is where we set /MTd for ffmpeg on windows
         ADDITIONAL_FFMPEG_ARGS+=(
@@ -109,7 +112,9 @@ elif [[ "$BUILD_PLATFORM" == "windows" ]]; then
         ADDITIONAL_CMAKE_ARGS+=(
             "-DCMAKE_C_FLAGS_RELEASE=-Z7 -MT -O2 -Ob2"
             "-DCMAKE_CXX_FLAGS_RELEASE=-Z7 -MT -O2 -Ob2"
-        )        
+            "-DCMAKE_C_FLAGS_RELWITHDEBINFO=-Z7 -MT -O2 -Ob2"
+            "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-Z7 -MT -O2 -Ob2"
+        )
     fi
 elif [[ "$BUILD_PLATFORM" == "linux" ]]; then
     if [[ "$BUILD_ARCH" == "x86" ]]; then
