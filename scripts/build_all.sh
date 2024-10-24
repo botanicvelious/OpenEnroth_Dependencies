@@ -359,6 +359,20 @@ cmake_install \
     "-DALSOFT_EXAMPLES=OFF" \
     "-DALSOFT_TESTS=OFF"
 
+cmake_install \
+    "$BUILD_TYPE" \
+    "$REPOS_DIR/libpng" \
+    "$BUILD_DIR/libpng" \
+    "$INSTALL_DIR" \
+    "$ADDITIONAL_THREADS_ARG_STRING" \
+    "${ADDITIONAL_CMAKE_ARGS[@]}" \
+    "-DPNG_SHARED=OFF" \
+    "-DPNG_FRAMEWORK=OFF" \
+    "-DPNG_TESTS=OFF" \
+    "-DPNG_TOOLS=OFF" \
+    "-DZLIB_ROOT=$INSTALL_DIR" \
+    "-DZLIB_USE_STATIC_LIBS=ON"
+
 if [[ "$BUILD_PLATFORM" != "linux" ]]; then
     # Pre-building SDL on linux makes very little sense. Do we enable x11? Wayland? Something else?
     cmake_install \
