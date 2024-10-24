@@ -391,6 +391,14 @@ fi
 rm -rf "$INSTALL_DIR/share"
 rm -rf "$INSTALL_DIR/bin"
 
+# We don't need dynamic zlib. Can't use proper regular expressions here b/c we need this to be portable.
+# See https://stackoverflow.com/questions/39727621/a-regex-that-works-in-find.
+# Note that on Windows dlls are in /bin and we've already deleted them.
+find ./tmp/install "(" -regex "libz.*dylib" -or -regex "libz.*so" ")" -exec rm "{}" ";"
+
+# And we also don't need all the symlinks.
+find ./tmp/install -type l -exec rm "{}" ";"
+
 # We don't want unneeded path in the zip archive, and there is no other way to do it except with pushd/popd:
 # https://superuser.com/questions/119649/avoid-unwanted-path-in-zip-file/119661
 pushd "$INSTALL_DIR"
