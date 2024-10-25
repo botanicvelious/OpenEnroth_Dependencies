@@ -10,3 +10,6 @@
 [submodule "repos/ffmpeg"]
 	path = repos/ffmpeg
 	url = https://github.com/FFmpeg/FFmpeg
+[submodule "repos/libpng"]
+	path = repos/libpng
+	url = https://github.com/pnggroup/libpng.git

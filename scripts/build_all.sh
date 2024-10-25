@@ -359,6 +359,20 @@ cmake_install \
     "-DALSOFT_EXAMPLES=OFF" \
     "-DALSOFT_TESTS=OFF"
 
+cmake_install \
+    "$BUILD_TYPE" \
+    "$REPOS_DIR/libpng" \
+    "$BUILD_DIR/libpng" \
+    "$INSTALL_DIR" \
+    "$ADDITIONAL_THREADS_ARG_STRING" \
+    "${ADDITIONAL_CMAKE_ARGS[@]}" \
+    "-DPNG_SHARED=OFF" \
+    "-DPNG_FRAMEWORK=OFF" \
+    "-DPNG_TESTS=OFF" \
+    "-DPNG_TOOLS=OFF" \
+    "-DZLIB_ROOT=$INSTALL_DIR" \
+    "-DZLIB_USE_STATIC_LIBS=ON"
+
 if [[ "$BUILD_PLATFORM" != "linux" ]]; then
     # Pre-building SDL on linux makes very little sense. Do we enable x11? Wayland? Something else?
     cmake_install \
@@ -376,6 +390,14 @@ fi
 # We don't need docs & executables.
 rm -rf "$INSTALL_DIR/share"
 rm -rf "$INSTALL_DIR/bin"
+
+# We don't need dynamic zlib. Can't use proper regular expressions here b/c we need this to be portable.
+# See https://stackoverflow.com/questions/39727621/a-regex-that-works-in-find.
+# Note that on Windows dlls are in /bin and we've already deleted them.
+find ./tmp/install "(" -regex "libz.*dylib" -or -regex "libz.*so" ")" -exec rm "{}" ";"
+
+# And we also don't need all the symlinks.
+find ./tmp/install -type l -exec rm "{}" ";"
 
 # We don't want unneeded path in the zip archive, and there is no other way to do it except with pushd/popd:
 # https://superuser.com/questions/119649/avoid-unwanted-path-in-zip-file/119661
