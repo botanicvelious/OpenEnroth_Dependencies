@@ -115,22 +115,7 @@ jobs:
         run: |
           if [[ "${{matrix.architecture}}" = "x86_64" ]]; then
               sudo apt-get install -y yasm
-          fi
-
-      - name: '[android] Setup NDK'
-        if: matrix.platform == 'android'
-        id: setup-ndk
-        uses: nttld/setup-ndk@v1.3.1
-        with:
-          ndk-version: '${{env.NDK_REVISION}}'
-          add-to-path: false
-          local-cache: true
-          link-to-sdk: true
-
-      - name: '[android] Set ANDROID_NDK'
-        if: matrix.platform == 'android'
-        run: |
-          echo "ANDROID_NDK=${{steps.setup-ndk.outputs.ndk-path}}" >> $GITHUB_ENV          
+          fi    
 
       - name: 'Variables'
         run: |
