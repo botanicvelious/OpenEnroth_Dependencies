@@ -382,6 +382,7 @@ if [[ "$BUILD_PLATFORM" != "linux" ]]; then
         "$INSTALL_DIR" \
         "$ADDITIONAL_THREADS_ARG_STRING" \
         "${ADDITIONAL_CMAKE_ARGS[@]}" \
+        "-DSDL_FORCE_STATIC_VCRT=ON" \
         "-DSDL_STATIC=$SDL_BUILD_STATIC" \
         "-DSDL_SHARED=$SDL_BUILD_SHARED" \
         "-DSDL_TEST=OFF"
