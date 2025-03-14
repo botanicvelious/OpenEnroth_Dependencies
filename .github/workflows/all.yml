@@ -19,7 +19,7 @@ on:
 env:
   DEPS_VERSION: r5
   # NDK version should match with the one in the main repo!
-  NDK_REVISION: r26d
+  NDK_VERSION: 26.3.11579264
 
 jobs:
   build:
@@ -117,20 +117,15 @@ jobs:
               sudo apt-get install -y yasm
           fi
 
-      - name: '[android] Setup NDK'
+      - name: '[android] Install NDK'
         if: matrix.platform == 'android'
-        id: setup-ndk
-        uses: nttld/setup-ndk@v1.3.1
-        with:
-          ndk-version: '${{env.NDK_REVISION}}'
-          add-to-path: false
-          local-cache: true
-          link-to-sdk: true
+        run: |
+          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "ndk;$NDK_VERSION"
 
       - name: '[android] Set ANDROID_NDK'
         if: matrix.platform == 'android'
         run: |
-          echo "ANDROID_NDK=${{steps.setup-ndk.outputs.ndk-path}}" >> $GITHUB_ENV          
+          echo "ANDROID_NDK=/usr/local/lib/android/sdk/ndk/$NDK_VERSION" >> $GITHUB_ENV
 
       - name: 'Variables'
         run: |
