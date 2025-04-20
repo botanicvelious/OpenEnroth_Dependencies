@@ -17,9 +17,9 @@ on:
       - published
 
 env:
-  DEPS_VERSION: r4
+  DEPS_VERSION: r5
   # NDK version should match with the one in the main repo!
-  NDK_REVISION: r27c
+  NDK_VERSION: 26.3.11579264
 
 jobs:
   build:
@@ -115,7 +115,17 @@ jobs:
         run: |
           if [[ "${{matrix.architecture}}" = "x86_64" ]]; then
               sudo apt-get install -y yasm
-          fi    
+          fi
+
+      - name: '[android] Install NDK'
+        if: matrix.platform == 'android'
+        run: |
+          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "ndk;$NDK_VERSION"
+
+      - name: '[android] Set ANDROID_NDK'
+        if: matrix.platform == 'android'
+        run: |
+          echo "ANDROID_NDK=/usr/local/lib/android/sdk/ndk/$NDK_VERSION" >> $GITHUB_ENV
 
       - name: 'Variables'
         run: |
